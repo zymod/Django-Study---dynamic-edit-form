@@ -1,0 +1,167 @@
+{% extends 'base.html' %}
+
+
+{% block css %} 
+
+<style>
+
+  html, body {
+    height: 100%;
+    position: relative;
+  }
+
+  .overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5); /* Kolor tła i przezroczystość (w tym przypadku: półprzezroczysty czarny) */
+      z-index: 1;
+      display: none;
+  }
+
+    #form-container {
+      width: 300px;
+  position: fixed;
+  display: none;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: #fff;
+  padding: 10px;
+  border-radius: 5px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+  animation: slide-down 0.5s ease;
+  line-height: 1.1;
+  z-index: 2;
+}
+
+/* Animacja spadania formularza */
+@keyframes slide-down {
+  0% {
+    transform: translate(-50%, -100%);
+    opacity: 0;
+  }
+  100% {
+    transform: translate(-50%, -50%);
+    opacity: 1;
+  }
+}
+
+/* Styl dla elementów formularza */
+#form-container input,
+#form-container textarea {
+  width: 100%;
+  margin-bottom: 10px;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+}
+
+#form-container button {
+  background-color: #4caf50;
+  color: #fff;
+  padding: 10px 5px;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+#form-container button:hover {
+  background-color: #45a049;
+}
+
+.x-icon {
+  color: black;
+  padding: 0;
+}
+
+</style>
+
+{% endblock css %}
+
+
+{% block content %}
+
+<div class="container-xl">
+
+    <table class="table">
+    <thead>
+      <tr>
+        <th scope="col">#</th>
+        <th scope="col">Name</th>
+        <th scope="col">quantity</th>
+        <th scope="col">Price</th>
+        <th scope="col">Note</th>
+      </tr>
+    </thead>
+    <div id="form-container"></div>
+    <tbody>
+      <tr>{% for product in product_all %}
+        <th scope="row">{{ product.id }}</th>
+        <td>{{ product.name }}</td>
+        <td>{{ product.quantity }}</td>
+        <td>{{ product.price }}</td>
+        <td>
+            <button onclick="showFormNote({{ product.id }})" id="edit-note-btn-{{ product.id }}" class="btn btn-primary" style="width: 20px; height: 20px;"> </button>
+        </td>
+      </tr>  <div onclick="hideFormNote({{ product.id }})" id="overlay" class="overlay"></div> {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div id="form-container"></div>
+
+
+
+<script>
+    var body = document.querySelector('body');
+    var formContainer = document.getElementById('form-container');
+    var editNoteBtn = document.getElementById('edit-note-btn');
+    var overlay = document.getElementById('overlay');
+
+    function showFormNote(productId) {
+        var url = `/warehouse/products/note_edit/`;
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({productId: productId})
+        })
+        .then(response => response.json()
+        )
+        .then(data => {
+            const formHTML = `
+            <form id="note-form" method="post">
+                {% csrf_token %}
+                <div class="row">
+                  <div class="col-11"><p>Note</p></div>
+                  <a onclick="hideFormNote( ${data.product_id} )" href="#" class="col-1 x-icon"><i class="bi bi-x"></i></a>
+                </div>
+                <textarea name="note" value="${data.obj_note}" rows="4" cols="50">${data.obj_note}</textarea>
+                <input name="id" value="${data.product_id}" style="display: none;">
+                <input type="submit" class="btn btn-success" value="Zapisz" />
+            </form>
+        `;
+        formContainer.innerHTML += formHTML;
+        formContainer.style.display = 'block';
+        document.getElementById(`edit-note-btn-${productId}`).disabled = true;
+        overlay.style.display = 'block';
+        })
+    };
+
+
+  function hideFormNote(productId) {
+    document.getElementById('note-form').remove();
+    overlay.style.display = 'none';
+    formContainer.style.display = 'none';
+    document.getElementById(`edit-note-btn-${productId}`).disabled = false;
+  }
+
+
+</script>
+
+
+{% endblock content %}
